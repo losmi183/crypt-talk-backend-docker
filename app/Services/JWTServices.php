@@ -37,7 +37,9 @@ class JWTServices
         $obj = new \stdClass;
 
         $obj->token = $this->createJWT($user, config('jwt.JWT2LIVEMIN'));
+        // $obj->token = $this->createJWT($user, 1);
         $obj->refresh_token = $this->createJWT($user, config('jwt.JWT2RFSHMIN'));
+        // $obj->refresh_token = $this->createJWT($user, 30);
 
         return $obj;
     }
