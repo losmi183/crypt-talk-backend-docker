@@ -143,7 +143,7 @@ class AuthServices {
         $status = $this->jwtServices->decodeJWT($refresh_token);
 
         if ($status == 403) {
-            abort( 403, 'Token has expired');
+            abort( 401, 'Refresh token has expired');
         }
         if ($status != 200) {
             abort(400, 'Token not valid');
@@ -292,5 +292,60 @@ class AuthServices {
     public function whoami(): ?array
     {
         return $this->jwtServices->getContent();
+    }
+
+    public function profileUpdate(array $data): User
+    {
+        $user = $this->jwtServices->getContent();
+        $user_id = $user['id'];
+
+        // 1. Provera da li postoji avatar fajl
+        if (isset($data['avatar']) && $data['avatar'] instanceof \Illuminate\Http\UploadedFile && $data['avatar']->isValid()) {
+            // napravi folder ako ne postoji
+            $destination = public_path('images/avatar');
+            if (!file_exists($destination)) {
+                mkdir($destination, 0777, true);
+            }
+
+            $extension = $data['avatar']->getClientOriginalExtension();
+            $filename = $user_id . '.' . $extension;
+
+            // snimi u /public/images/avatar
+            $data['avatar']->move($destination, $filename);
+
+            // sačuvaj relativnu putanju (da lako praviš URL)
+            $data['avatar'] = $filename;
+        } else {
+            unset($data['avatar']);
+        }
+
+        // update user-a
+        // $data['avatar'] = $filename;
+        try {
+            $user = User::find($user_id);
+            $user->update($data);
+            $user->save();
+        } catch (Throwable $th) {
+            Log::error($th->getMessage());
+            abort(400, 'Profile update error');
+        }
+        return $user;
+    }
+
+    public function passwordUpdate(array $data): bool
+    {
+        $user = $this->jwtServices->getContent();
+
+        $user = User::where('email', $user['email'])->first();
+
+        try {
+            $user->password = bcrypt($data['password']);
+            $user->save();
+        } catch (Throwable $th) {
+            Log::error($th->getMessage());
+            abort(400, 'Password update error');
+        }
+
+        return true;
     }
 }

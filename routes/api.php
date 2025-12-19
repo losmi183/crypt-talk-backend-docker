@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\ConversatonController;
+use App\Http\Controllers\PusherAuthController;
 
 
 Route::group(['prefix' => 'auth'], function () {
@@ -24,14 +26,14 @@ Route::group(['prefix' => 'auth'], function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     
     Route::post('/google-login', [AuthController::class, 'googleLogin']);
-    Route::get('/google/callback', [AuthController::class, 'handleGoogleCallback']);
+    Route::get('/google/callback', [AuthController::class, 'handleGoogleCallback']);    
+    
 });
-
-
-
 
 Route::group(['middleware' => 'jwt', 'prefix' => 'auth'], function () {
     Route::get('/whoami', [AuthController::class, 'whoami']);
+    Route::post('/profile-update', [AuthController::class, 'profileUpdate']);
+    Route::post('/password-update', [AuthController::class, 'passwordUpdate']);
 });
 
 Route::group(['middleware' => 'jwt', 'prefix' => 'user'], function () {
@@ -40,4 +42,14 @@ Route::group(['middleware' => 'jwt', 'prefix' => 'user'], function () {
     Route::get('/edit', [UserController::class, 'edit']);
     Route::post('/update', [UserController::class, 'update']);
     Route::post('/change-password', [UserController::class, 'changePassword']);
+});
+
+Route::post('/pusher/auth', [PusherAuthController::class, 'authenticate'])->middleware('jwt');
+Route::group(['middleware' => 'jwt', 'prefix' => 'conversation'], routes: function () {
+    Route::get('/index', [ConversatonController::class, 'myConversations']);
+    Route::post('/start-conversation', [ConversatonController::class, 'startConversation']);
+    Route::post('/show', [ConversatonController::class, 'show']);
+    Route::post('/send', [ConversatonController::class, 'send']);
+    Route::post('/seen', [ConversatonController::class, 'seen']);
+    Route::post('/mark-as-seen', [ConversatonController::class, 'markAsSeen']);
 });

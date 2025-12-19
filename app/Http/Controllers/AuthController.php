@@ -12,8 +12,10 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RefreshRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Http\Requests\GoogleLoginRequest;
+use App\Http\Requests\ProfileUpdateRequest;
 use App\Http\Requests\ResetPasswordRequest;
 use App\Http\Requests\ForgotPasswordRequest;
+use App\Http\Requests\PasswordUpdateRequest;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
@@ -266,7 +268,7 @@ class AuthController extends Controller
         $data = $request->validated();
 
         $users = $this->authServices->forgotPassword($data);
-        return response()->json(['messsage' => 'reset link sent to email']);
+        return response()->json(['message' => 'reset link sent to email']);
     }
 
     public function resetPassword(ResetPasswordRequest $request): JsonResponse
@@ -274,6 +276,74 @@ class AuthController extends Controller
         $data = $request->validated();
 
         $result = $this->authServices->resetPassword($data);
-        return response()->json(['messsage' => 'reset link sent to email']);
+        return response()->json(['message' => 'reset link sent to email']);
+    }
+
+   #[OA\Post(
+        path: '/auth/profile-update',
+        summary: 'User profil update',
+        tags: ['User'],
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    type: 'object',
+                    required: ['name', 'about', 'avatar'],
+                    properties: [
+                        new OA\Property(property: 'name', type: 'string', description: 'User name', example: 'John Doe'),
+                        // new OA\Property(property: 'password', type: 'string', description: 'User password (optional)', example: 'mySecurePass123'),
+                        new OA\Property(property: 'about', type: 'string', description: 'About user', example: 'Software developer from Belgrade'),
+                        new OA\Property(property: 'avatar', type: 'string', format: 'binary', description: 'User avatar file')
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'User updated'),
+            new OA\Response(response: Response::HTTP_INTERNAL_SERVER_ERROR, description: 'Server Error')
+        ]
+    )]
+    public function profileUpdate(ProfileUpdateRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $result = $this->authServices->profileUpdate($data);
+        return response()->json(['message' => 'Profil updated']);
+    }
+
+   #[OA\Post(
+        path: '/user/password-update',
+        summary: 'User password update',
+        tags: ['User'],
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    type: 'object',
+                    required: ['name', 'about', 'avatar'],
+                    properties: [
+                        new OA\Property(property: 'name', type: 'string', description: 'User name', example: 'John Doe'),
+                        // new OA\Property(property: 'password', type: 'string', description: 'User password (optional)', example: 'mySecurePass123'),
+                        new OA\Property(property: 'about', type: 'string', description: 'About user', example: 'Software developer from Belgrade'),
+                        new OA\Property(property: 'avatar', type: 'string', format: 'binary', description: 'User avatar file')
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Password updated'),
+            new OA\Response(response: Response::HTTP_INTERNAL_SERVER_ERROR, description: 'Server Error')
+        ]
+    )]
+    public function passwordUpdate(PasswordUpdateRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $result = $this->authServices->passwordUpdate($data);
+        return response()->json(['message' => 'Password updated']);
     }
 }

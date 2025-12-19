@@ -82,7 +82,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>✉️ Welcome to Nighthub!</h1>
+            <h1>✉️ Welcome to Crypt talk!</h1>
         </div>
         
         <div class="content">
