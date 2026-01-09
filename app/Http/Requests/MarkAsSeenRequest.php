@@ -25,7 +25,8 @@ class MarkAsSeenRequest extends FormRequest
     public function rules()
     {
         return [
-            'friend_id' => 'required|integer',
+            'conversationId' => 'required|integer',
+            'messageId' => 'nullable|integer',
         ];
     }
  

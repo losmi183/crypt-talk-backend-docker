@@ -16,42 +16,47 @@ class PusherAuthController extends Controller
 
     public function authenticate(Request $request)
     {
+        // JWT middleware je već prošao i garantuje validnog usera
+        $user = $this->jWTServices->getContent();
+        $userId = (int) $user['id'];
+
+        $channelName = $request->input('channel_name');
+        $socketId = $request->input('socket_id');
+
+        // Očekivani format: private-user-{userId}
+        if (!preg_match('/^private-user-(\d+)$/', $channelName, $matches)) {
+            return response('Forbidden', 403);
+        }
+
+        $channelUserId = (int) $matches[1];
+
+        // User može da se subscribe-uje samo na SOPSTVENI kanal
+        if ($channelUserId !== $userId) {
+            return response('Forbidden', 403);
+        }
+
+        // $pusher = new Pusher(
+        //     'd842d9bd852a8bbc74b0',
+        //     '19954d590e875e506b86',
+        //     '1821016',
+        //     [
+        //         'cluster' => 'eu',
+        //         'useTLS'  => true,
+        //     ]
+        // );
         $pusher = new Pusher(
             config('pusher.key'),
             config('pusher.secret'),
             config('pusher.app_id'),
             [
                 'cluster' => config('pusher.cluster'),
-                'useTLS' => config('pusher.useTLS', true),
+                'useTLS'  => config('pusher.useTLS', true),
             ]
         );
-        
-        $channel_name = $request->input('channel_name');
-        $socket_id = $request->input('socket_id');        
-        
-        // Izvuci conversation_id iz imena kanala
-        preg_match('/private-conversation-(\d+)/', $channel_name, $m);
-        $conversation_id = $m[1] ?? null;
-        
-        if (!$conversation_id) {
-            return response('Forbidden', 403);
-        }
 
-        $user = $this->jWTServices->getContent();
-        $user_id = $user['id'];
-
-        // Provera da li user pripada toj konverzaciji
-        $allowed = \DB::table('conversation_user')
-            ->where('conversation_id', $conversation_id)
-            ->where('user_id', $user_id)
-            ->exists();
-        
-        if (!$allowed) {
-            return response('Forbidden', 403);
-        }
-        
-        // OK
-        $auth = $pusher->socket_auth($channel_name, $socket_id);
-        return response($auth);
+        // Autorizacija uspešna
+        return response(
+            $pusher->socket_auth($channelName, $socketId)
+        );
     }
 }

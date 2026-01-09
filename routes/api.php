@@ -49,7 +49,7 @@ Route::group(['middleware' => 'jwt', 'prefix' => 'conversation'], routes: functi
     Route::get('/index', [ConversatonController::class, 'index']);
     Route::post('/start-conversation', [ConversatonController::class, 'startConversation']);
     Route::post('/show', [ConversatonController::class, 'show']);
-    Route::post('/send', [ConversatonController::class, 'send']);
+    Route::post('/send-message', [ConversatonController::class, 'sendMessage']);
     Route::post('/seen', [ConversatonController::class, 'seen']);
-    Route::post('/mark-as-seen', [ConversatonController::class, 'markAsSeen']);
+    Route::post('/mark-as-read', [ConversatonController::class, 'markAsRead']);
 });

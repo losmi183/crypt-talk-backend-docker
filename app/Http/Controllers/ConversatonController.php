@@ -99,13 +99,13 @@ class ConversatonController extends Controller
             new OA\Response(response: Response::HTTP_INTERNAL_SERVER_ERROR, description: 'Server Error')
         ]
     )]
-    public function send(MessageSendRequest $request): JsonResponse
+    public function sendMessage(MessageSendRequest $request): JsonResponse
     {
         $data = $request->validated();
 
-        $this->conversationServices->send($data['conversationId'], $data['content']);        
+        $message = $this->conversationServices->sendMessage($data['conversationId'], $data['content']);        
 
-        return response()->json(['status' => 'success']);
+        return response()->json(['status' => 'success', 'message' => $message]);
     }
 
     public function seen(MessageSeenRequest $request): JsonResponse
@@ -117,11 +117,11 @@ class ConversatonController extends Controller
         return response()->json($result);
     }
 
-    public function markAsSeen(MarkAsSeenRequest $request): JsonResponse
+    public function markAsRead(MarkAsSeenRequest $request): JsonResponse
     {
         $data = $request->validated();
 
-        $result = $this->conversationServices->markAsSeen($data['friend_id']);        
+        $result = $this->conversationServices->markAsRead($data);        
 
         return response()->json($result);
     }

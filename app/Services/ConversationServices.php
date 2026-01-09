@@ -34,8 +34,26 @@ class ConversationServices {
         $user = $this->jwtServices->getContent();
         $user_id = $user['id'];
 
+
         $conversations = Conversation::forUser($user_id)
-            ->get(['id', 'type', 'title']);
+            ->leftJoin('conversation_user as cu', function($join) use ($user_id) {
+                $join->on('cu.conversation_id', 'conversations.id')
+                    ->where('cu.user_id', $user_id);
+            })
+            ->leftJoin('messages as m', function($join) {
+                // COALESCE uzima 0 ako je last_read_message_id null ili 0
+                $join->on('m.conversation_id', 'conversations.id')
+                    ->whereRaw('m.id > COALESCE(cu.last_read_message_id, 0)');
+            })
+            ->select(
+                'conversations.id',
+                'conversations.type',
+                'conversations.title',
+                DB::raw('COUNT(m.id) as unread_count')
+            )
+            ->groupBy('conversations.id', 'conversations.type', 'conversations.title')
+            ->get();
+
 
         return $conversations;
     }
@@ -88,6 +106,7 @@ class ConversationServices {
         $user = $this->jwtServices->getContent();
         $user_id = $user['id'];
         $conversation_id = intval($data['conversationId']);
+        $limit = 20;
         $last_message_id = $data['lastMessageId'] ? intval($data['lastMessageId']) : null;
 
         $conversation = Conversation::with(['users' => function($q) use ($user_id) {
@@ -97,39 +116,72 @@ class ConversationServices {
         }])
         ->first();
 
-        $conversation->messages = DB::table('messages as m')
+        $messagesQuery = DB::table('messages as m')
         ->join('users as u', 'u.id', 'm.sender_id')
-        ->select('m.*', 'u.name as sender_name')
-        ->where('m.conversation_id', $conversation_id)
+        ->select(
+            'm.*', 
+            'u.name as sender_name', 
+            DB::raw("CONCAT('" . config('app.url') . "/images/avatar/', u.avatar) as avatar_url")
+        )
+        ->where('m.conversation_id', $conversation_id);
+
+        if($last_message_id) {
+            $messagesQuery->where('m.id', '<', $last_message_id);
+        }
+        
+        $conversation->messages = $messagesQuery
         ->orderBy('m.id','desc')
-        ->get();
+        ->limit($limit)
+        ->get()
+        ->values();
         
         return $conversation;
     }
 
-    public function send(int $conversation_id, string $content): Message
+    public function sendMessage(int $conversation_id, string $content): stdClass
     {
         $user = $this->jwtServices->getContent();
         unset($user['exp']);
         $event = 'message.sent';
-        $channel = config('pusher.PRIVATE_CONVERSATION').$conversation_id;
-
-        $this->pusherServices->push(
-            $event,
-            $channel,
-            $conversation_id, 
-            $content, 
-            $user);
 
         try {
-            $message = Message::create([
+            $messageId = DB::table('messages')->insertGetId([
                 'sender_id' => $user['id'],
                 'conversation_id' => $conversation_id,
                 'message' => $content,
             ]);
+
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
         }
+
+        $message = DB::table('messages as m')
+            ->join('users as u', 'u.id', 'm.sender_id')
+            ->select(
+                'm.*', 
+                'u.name as sender_name', 
+                DB::raw("CONCAT('" . config('app.url') . "/images/avatar/', u.avatar) as avatar_url")
+            )
+            ->where('m.id', $messageId)
+            ->first();
+
+        // $conversation = DB::table('conversations')->where('id', $conversation_id)->first();
+        $participants = DB::table('conversation_user')
+        ->select('user_id')
+        ->where('conversation_id', $conversation_id)
+        ->where('user_id', '!=', $user['id'])
+        ->get();
+
+        foreach ($participants as $participant) {
+            $channel = config('pusher.PRIVATE_CONVERSATION').$participant->user_id;
+            $this->pusherServices->push(
+                $event,
+                $channel,
+                $conversation_id, 
+                $message, 
+            );
+        }
+
         return $message;
     }
 
@@ -169,20 +221,26 @@ class ConversationServices {
         return true;
     }
 
-    public function markAsSeen(int $friend_id): bool
+    public function markAsRead(array $data): bool
     {
         $user = $this->jwtServices->getContent();
         $user_id = $user['id'];
+        $conversationId = $data['conversationId'];
+        $lastMessageId = isset($data['messageId']) ? $data['messageId'] : null;
+
+        if(!$lastMessageId) {
+            $lastMessageId = DB::table('messages')
+                ->where('conversation_id', $conversationId)
+                ->latest('id')
+                ->value('id');
+        }
 
         try {
-            DB::table('messages')
-                ->where('sender_id', $friend_id)
-                ->where('receiver_id', $user_id)
-                ->where('is_read', 0)
+            DB::table('conversation_user')
+                ->where('conversation_id', $conversationId)
+                ->where('user_id', $user_id)
                 ->update([
-                    'status' => 'seen',
-                    'is_read' => 1,
-                    'seen' => now(),
+                    'last_read_message_id' => $lastMessageId
                 ]);
         } catch (\Throwable $th) {
             Log::error($th->getMessage());
