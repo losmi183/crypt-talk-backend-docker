@@ -75,7 +75,7 @@ class ConversationServices {
                 $pObj->id = $pArray[0] ?? null;
                 $pObj->name = $pArray[1] ?? null;
                 $pObj->avatar = $pArray[2] ?? null;
-                $pObj->avatar_url = $pObj->avatar ? config('app.url') . '/images/avatar/' . $pObj->avatar : null;
+                $pObj->avatar_url = config('app.url') . '/images/avatar/' . ($pObj->avatar ? $pObj->avatar : 'default.png');
                 $conversation->users[] = $pObj;
             }
         }
@@ -154,6 +154,7 @@ class ConversationServices {
         $conversation_id = intval($data['conversationId']);
         $limit = 20;
         $last_message_id = $data['lastMessageId'] ? intval($data['lastMessageId']) : null;
+        $attachment_path = config('app.url') . '/storage/';
 
         $conversation = Conversation::with(['users' => function($q) use ($user_id) {
             
@@ -164,10 +165,16 @@ class ConversationServices {
 
         $messagesQuery = DB::table('messages as m')
         ->join('users as u', 'u.id', 'm.sender_id')
+        ->leftJoin('attachments as a', function($join) {
+            $join->on('a.message_id', '=', 'm.id')
+                ->where('m.type', '=', 'attachment');
+        })
         ->select(
             'm.*', 
             'u.name as sender_name', 
-            DB::raw("CONCAT('" . config('app.url') . "/images/avatar/', u.avatar) as avatar_url")
+            DB::raw("CONCAT('" . config('app.url') . "/images/avatar/', COALESCE(NULLIF(u.avatar, ''), 'default.png')) as avatar_url"),
+            DB::raw("CONCAT('" . $attachment_path . "', a.path) as attachment_path"),
+            'a.type as attachment_type',
         )
         ->where('m.conversation_id', $conversation_id);
 

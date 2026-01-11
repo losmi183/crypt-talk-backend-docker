@@ -21,9 +21,10 @@ return new class extends Migration
             $table->unsignedBigInteger(column: 'sender_id')->nullable();
             $table->foreign('sender_id')->references('id')->on('users')->onDelete('cascade');
 
-
+            $table->enum('type', ['message', 'attachment'])->default('message');
+            
             // Tekst poruke
-            $table->text('message');
+            $table->text('message')->nullable();
 
             // Opcionalno: status poruke (sent, delivered, read) možeš dodati kasnije
             $table->enum('status', ['sent', 'delivered', 'read'])->default('sent');

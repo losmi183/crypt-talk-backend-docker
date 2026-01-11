@@ -19,6 +19,56 @@
         }
     ],
     "paths": {
+        "/conversation/send-attachment": {
+            "post": {
+                "tags": [
+                    "Message"
+                ],
+                "summary": "Send attachment (image or video)",
+                "operationId": "727615774ee12f2bac025d96bb188079",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "required": [
+                                    "conversation_id",
+                                    "file"
+                                ],
+                                "properties": {
+                                    "conversation_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "file": {
+                                        "description": "Image or video file (jpg, png, gif, mp4, mov, avi)",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Attachment sent successfully"
+                    },
+                    "422": {
+                        "description": "Validation error"
+                    },
+                    "500": {
+                        "description": "Server error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/auth/register": {
             "post": {
                 "tags": [
@@ -409,13 +459,13 @@
                 ]
             }
         },
-        "/message/my-conversations": {
+        "/conversation/index": {
             "get": {
                 "tags": [
                     "Message"
                 ],
                 "summary": "Get all conversations for authenticated user",
-                "operationId": "eafadd5f0aaeb9b8c139c2d030505fb4",
+                "operationId": "9281aa17648b606969b830d642019834",
                 "responses": {
                     "200": {
                         "description": "All user conversations"
@@ -437,7 +487,7 @@
                     "Message"
                 ],
                 "summary": "Get conversation with a friend",
-                "operationId": "5a3c148fe2fe956f2bbbd24d8d722ae6",
+                "operationId": "14d346ddc59e298197daeb51531d6e33",
                 "parameters": [
                     {
                         "name": "friend_id",
@@ -474,7 +524,7 @@
                     "Message"
                 ],
                 "summary": "Send message",
-                "operationId": "eaafca982862ddd629b2fe5ff1e0ee79",
+                "operationId": "f25141bc0e4d4a6aaca8fe3e58e07b10",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -732,16 +782,16 @@
     },
     "tags": [
         {
+            "name": "Message",
+            "description": "Message"
+        },
+        {
             "name": "Auth",
             "description": "Auth"
         },
         {
             "name": "User",
             "description": "User"
-        },
-        {
-            "name": "Message",
-            "description": "Message"
         }
     ]
 }

@@ -4,8 +4,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\ConversatonController;
+use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\PusherAuthController;
+use App\Http\Controllers\ConversatonController;
 
 
 Route::group(['prefix' => 'auth'], function () {
@@ -50,6 +51,7 @@ Route::group(['middleware' => 'jwt', 'prefix' => 'conversation'], routes: functi
     Route::post('/start-conversation', [ConversatonController::class, 'startConversation']);
     Route::post('/show', [ConversatonController::class, 'show']);
     Route::post('/send-message', [ConversatonController::class, 'sendMessage']);
+    Route::post('/send-attachment', [AttachmentController::class, 'sendAttachment']);
     Route::post('/seen', [ConversatonController::class, 'seen']);
     Route::post('/mark-as-read', [ConversatonController::class, 'markAsRead']);
 });
