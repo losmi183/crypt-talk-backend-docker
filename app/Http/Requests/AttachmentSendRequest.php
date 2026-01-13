@@ -26,7 +26,7 @@ class AttachmentSendRequest extends FormRequest
     {
         return [
             'conversation_id' => 'required|exists:conversations,id',
-            'file' => 'required|file|max:51200|mimes:jpg,jpeg,png,gif,mp4,mov,avi,webp,avif', // max 50MB
+            'file' => 'required|file|max:51200|mimes:jpg,jpeg,png,gif,webp,avif,mp4,mov,avi,mp3,wav,m4a,ogg,webm',
         ];
     }
  

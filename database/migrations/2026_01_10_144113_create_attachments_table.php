@@ -25,6 +25,7 @@ return new class extends Migration
             
             // Putanja fajla
             $table->string('path');
+            $table->string('thumbnail');
             
             // Metadata
             $table->unsignedBigInteger('size')->nullable();       // veličina u bajtovima

@@ -154,6 +154,7 @@ class ConversationServices {
         $conversation_id = intval($data['conversationId']);
         $limit = 20;
         $last_message_id = $data['lastMessageId'] ? intval($data['lastMessageId']) : null;
+        $media_link = config('app.url') . '/api/media/';
         $attachment_path = config('app.url') . '/storage/';
 
         $conversation = Conversation::with(['users' => function($q) use ($user_id) {
@@ -174,6 +175,7 @@ class ConversationServices {
             'u.name as sender_name', 
             DB::raw("CONCAT('" . config('app.url') . "/images/avatar/', COALESCE(NULLIF(u.avatar, ''), 'default.png')) as avatar_url"),
             DB::raw("CONCAT('" . $attachment_path . "', a.path) as attachment_path"),
+            DB::raw("CONCAT('" . $media_link . "', a.thumbnail) as thumbnail"),
             'a.type as attachment_type',
         )
         ->where('m.conversation_id', $conversation_id);
