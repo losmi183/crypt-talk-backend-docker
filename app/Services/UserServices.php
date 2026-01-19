@@ -47,7 +47,6 @@ class UserServices {
             $extension = $data['avatar']->getClientOriginalExtension();
             $filename = $user_id . '.' . $extension;
 
-            // snimi u /public/images/avatar
             $data['avatar']->move($destination, $filename);
 
             // sačuvaj relativnu putanju (da lako praviš URL)

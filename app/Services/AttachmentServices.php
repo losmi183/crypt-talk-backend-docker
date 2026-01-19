@@ -2,22 +2,24 @@
 
 namespace App\Services;
 
+use App\Repository\MessageRepository;
 use stdClass;
-use App\Models\Message;
 use App\Models\Attachment;
 use Illuminate\Support\Str;
+use App\Services\MediaServices;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\Gd\Driver;
 
 class AttachmentServices {
 
     private JWTServices $jwtServices;
     private PusherServices $pusherServices;
-    public function __construct(JWTServices $jwtServices, PusherServices $pusherServices) {
+    private MediaServices $mediaServices;
+    private MessageRepository $messageRepository;
+    public function __construct(JWTServices $jwtServices, PusherServices $pusherServices, MediaServices $mediaServices, MessageRepository $messageRepository) {
         $this->pusherServices = $pusherServices;
         $this->jwtServices = $jwtServices;
+        $this->mediaServices = $mediaServices;
+        $this->messageRepository = $messageRepository;
     }
 
     public function sendAttachment(array $data): stdClass
@@ -25,67 +27,44 @@ class AttachmentServices {
         $user = $this->jwtServices->getContent();
         $user_id = $user['id'];
         $event = 'message.sent';
-        $attachment_path = config('app.url') . '/storage/';
+        // $attachment_path = config('app.url') . '/storage/';
+        
 
         $file = $data['file'];
-        $originalName = $file->getClientOriginalName();
-        $extension = $file->getClientOriginalExtension();
         $mimeType = $file->getMimeType();
+        $duration = $this->mediaServices->getDuration($file, $mimeType);
+        $fileType = $this->mediaServices->getFileType($mimeType);
         
-        $folder = Str::startsWith($mimeType, 'image') ? 'images' : (Str::startsWith($mimeType, 'video') ? 'videos' : 'attachments');$folder = Str::startsWith($mimeType, 'image') ? 'images' 
-        : (Str::startsWith($mimeType, 'video') ? 'videos' 
-        : (Str::startsWith($mimeType, 'audio') ? 'audio' 
-        : 'attachments'));
+        $path = $file->store($fileType, 'private');
 
-        $path = $file->store($folder, 'private');
-
-        if (Str::startsWith($mimeType, 'image')) {
-            $thumbnailPath = $this->makePhotoThumbnail($file, $path, $mimeType);
+        // Create thumbnail
+        if($fileType === 'image') {
+            $thumbnailPath = $this->mediaServices->makePhotoThumbnail($file, $path, $mimeType);
         }
-        if (Str::startsWith($mimeType, 'video')) {
-            $thumbnailPath = $this->makeVideoThumbnail($path);
-        }
+        if($fileType === 'video') {
+             $thumbnailPath = $this->mediaServices->makeVideoThumbnail($path);
+        }   
 
-
-        // Kreiranje poruke tipa attachment
+        // Create message and attachment
         $message_id = DB::table('messages')->insertGetId([
             'conversation_id' => $data['conversation_id'],
             'sender_id' => $user_id,
             'type' => 'attachment',
             'message' => null, // jer je attachment
         ]);
-        $attachmentData = [
+        DB::table('attachments')->insert([
             'message_id' => $message_id,
-            'type' => Str::startsWith($mimeType, 'image') ? 'image' : 'video',
+            'type' => $fileType,
             'path' => $path,
-            'thumbnail' => $thumbnailPath, 
+            'thumbnail' => $thumbnailPath ?? null, 
             'size' => $file->getSize(),
-        ];
-        $attachment = Attachment::create($attachmentData);
+            'duration' => $duration
+        ]);
 
-        // 3. Kreiranje thumbnail-a ako je slika
-
-        $message = DB::table('messages as m')
-        ->join('users as u', 'u.id', 'm.sender_id')
-        ->leftJoin('attachments as a', function($join) {
-            $join->on('a.message_id', '=', 'm.id')
-                ->where('m.type', '=', 'attachment');
-        })
-        ->select(
-            'm.*', 
-            'u.name as sender_name', 
-            DB::raw("CONCAT('" . config('app.url') . "/images/avatar/', u.avatar) as avatar_url"),
-                        DB::raw("CONCAT('" . $attachment_path . "', a.path) as attachment_path"),
-        )
-        ->where('m.id', $message_id)
-        ->first();
+        $message = $this->messageRepository->getMessage($message_id);
 
         // $conversation = DB::table('conversations')->where('id', $conversation_id)->first();
-        $participants = DB::table('conversation_user')
-        ->select('user_id')
-        ->where('conversation_id', $message->conversation_id)
-        ->where('user_id', '!=', $user['id'])
-        ->get();
+        $participants = $this->messageRepository->getParticipants($message->conversation_id, $user['id']);
 
         foreach ($participants as $participant) {
             $channel = config('pusher.PRIVATE_CONVERSATION').$participant->user_id;
@@ -98,85 +77,4 @@ class AttachmentServices {
         }
         return $message;
     }
-
- 
-    private function makePhotoThumbnail($file, $originalPath, $mimeType): string|null
-    {
-        // create image manager with desired driver
-        $manager = new ImageManager(new Driver());
-
-        // read image from file system
-        $image = $manager->read($file->getRealPath());
-
-        // resize image proportionally to 300px width
-        $image->scale(height: 200);
-
-        // Kreiraj ime fajla za thumbnail
-        $filename = pathinfo($originalPath, PATHINFO_FILENAME) . '_thumb.' . $file->getClientOriginalExtension();
-
-        // Putanja unutar storage/app/public
-        $thumbnailPath = 'thumbnails/' . $filename;
-
-        // Snimi thumbnail u storage disk 'public'
-        Storage::disk('private')->put($thumbnailPath, (string) $image->encode());
-
-        // Vrati putanju thumbnail-a
-        return $thumbnailPath;
-    }   
-
-    private function makeVideoThumbnail(string $relativeVideoPath, string $extension = 'jpg'): ?string
-    {
-        // apsolutna putanja do video fajla
-        $absoluteVideoPath = storage_path('app/' . $relativeVideoPath);
-
-        if (!file_exists($absoluteVideoPath)) {
-            return null;
-        }
-
-        // thumbnails folder: storage/app/thumbnails
-        $thumbnailDir = storage_path('app/thumbnails');
-
-        if (!is_dir($thumbnailDir)) {
-            mkdir($thumbnailDir, 0755, true);
-        }
-
-        // ime thumbnail-a: koristi ime originalnog fajla
-        $filename = pathinfo($relativeVideoPath, PATHINFO_FILENAME) . '_thumb.' . $extension;
-
-        // relativna putanja (za bazu)
-        $thumbnailPath = 'thumbnails/' . $filename;
-
-        // apsolutna putanja za ffmpeg
-        $absoluteThumbnailPath = storage_path('app/' . $thumbnailPath);
-
-        // uzmi frame na 1 sekundi (-ss 1)
-        $cmd = sprintf(
-            'ffmpeg -y -i %s -ss 00:00:01 -vframes 1 %s 2>/dev/null',
-            escapeshellarg($absoluteVideoPath),
-            escapeshellarg($absoluteThumbnailPath)
-        );
-
-        exec($cmd, $output, $exitCode);
-
-        // proveri da li je FFmpeg uspeo
-        if ($exitCode !== 0 || !file_exists($absoluteThumbnailPath)) {
-            return null;
-        }
-
-        return $thumbnailPath;
-    }
-
-    public function show(string $token, string  $type, string  $file)
-    {
-        // Ograniči pristup samo folderu images
-        // $filePath = storage_path('app/' . $type . '/' . $file);
-
-        // if (!file_exists(filename: $filePath)) {
-        //     abort(404, 'File not found');
-        // }
-
-        // return $filePath;
-    }
-
-
 }

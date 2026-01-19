@@ -21,11 +21,11 @@ return new class extends Migration
                   ->onDelete('cascade'); // Ako se poruka obriše, brišu se i attachment-i
             
             // Tip fajla
-            $table->enum('type', ['image', 'video']);
+            $table->enum('type', ['image', 'video', 'audio']);
             
             // Putanja fajla
             $table->string('path');
-            $table->string('thumbnail');
+            $table->string('thumbnail')->nullable();
             
             // Metadata
             $table->unsignedBigInteger('size')->nullable();       // veličina u bajtovima

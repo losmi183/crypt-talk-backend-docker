@@ -174,9 +174,10 @@ class ConversationServices {
             'm.*', 
             'u.name as sender_name', 
             DB::raw("CONCAT('" . config('app.url') . "/images/avatar/', COALESCE(NULLIF(u.avatar, ''), 'default.png')) as avatar_url"),
-            DB::raw("CONCAT('" . $attachment_path . "', a.path) as attachment_path"),
+            DB::raw("CONCAT('" . $media_link . "', a.path) as attachment_path"),
             DB::raw("CONCAT('" . $media_link . "', a.thumbnail) as thumbnail"),
             'a.type as attachment_type',
+            'a.duration'
         )
         ->where('m.conversation_id', $conversation_id);
 
