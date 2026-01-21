@@ -31,7 +31,13 @@ class AttachmentServices {
         
 
         $file = $data['file'];
-        $mimeType = $file->getMimeType();
+        $originalName = $file->getClientOriginalName();
+        // Ako je ekstenzija .webm ili .oga, forsiraj audio type
+        if (in_array($file->getClientOriginalExtension(), ['webm', 'oga', 'ogg'])) {
+            $mimeType = 'audio/webm'; // Forsiraj audio
+        } else {
+            $mimeType = $file->getMimeType();
+        }
         $duration = $this->mediaServices->getDuration($file, $mimeType);
         $fileType = $this->mediaServices->getFileType($mimeType);
         
