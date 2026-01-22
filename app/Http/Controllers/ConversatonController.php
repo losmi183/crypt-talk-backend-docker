@@ -45,9 +45,9 @@ class ConversatonController extends Controller
     }
 
     public function startConversation(Request $request): JsonResponse {
-        $friend_id = $request->get('user_id');
+        $friend_id = $request->get('friend_id');
         $result = $this->conversationServices->startConversation($friend_id);
-        return response()->json($result);
+        return response()->json(['conversation_id' => $result]);
     }
 
     #[OA\Get(

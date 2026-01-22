@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Services;
+use App\Repository\ConversationRepository;
 use stdClass;
 use Carbon\Carbon;
 use Pusher\Pusher;
@@ -21,131 +22,80 @@ class ConversationServices {
     private UserRepository $userRepository;
     private JWTServices $jwtServices;
     private MessageRepository $messageRepository;
+    private ConversationRepository $conversationRepository;
     private PusherServices $pusherServices;
-    public function __construct(UserRepository $userRepository, JWTServices $jwtServices, MessageRepository $messageRepository, PusherServices $pusherServices) {
+    public function __construct(
+        UserRepository $userRepository, 
+        JWTServices $jwtServices, 
+        MessageRepository $messageRepository, 
+        PusherServices $pusherServices,
+        ConversationRepository $conversationRepository
+    ) {
         $this->userRepository = $userRepository;
         $this->jwtServices = $jwtServices;
         $this->messageRepository = $messageRepository;
         $this->pusherServices = $pusherServices;
+        $this->conversationRepository = $conversationRepository;
     }
 
     public function index() {
 
         $user = $this->jwtServices->getContent();
-        $user_id = $user['id'];
 
-        $conversations = DB::table('conversations as c')
+        $conversations = $this->conversationRepository->userConversations($user['id']);
+
         
-        ->join('conversation_user as cu_user', function($join) use ($user_id) {
-            $join->on('c.id', '=', 'cu_user.conversation_id')
-                ->where('cu_user.user_id', $user_id);
-        })
-
-        ->leftjoin('conversation_user as cu', function($join) use ($user_id) {
-            $join->on('c.id', '=', 'cu.conversation_id')
-                ->where('cu.user_id', '!=', $user_id);
-        })
-
-        ->leftJoin('users as u', 'u.id', 'cu.user_id')
-
-        ->select([
-            'c.id', 'c.title', 'c.type',
-            DB::raw("GROUP_CONCAT(CONCAT_WS('|', u.id, u.name, u.avatar)) as participants"),
-
-            DB::raw("
-                (SELECT COUNT(*) 
-                FROM messages as m
-                WHERE m.conversation_id = c.id
-                    AND (
-                        cu_user.last_read_message_id IS NULL
-                        OR m.id > cu_user.last_read_message_id
-                    )
-                ) as unread_count
-            ")            
-        ])        
-        ->groupBy('c.id', 'c.title', 'c.type', 'cu_user.last_read_message_id')
-        ->get();
-
-        foreach ($conversations as $conversation) {
-            $conversation->users = [];
-            $participants = explode(',' ,$conversation->participants);
-            foreach ($participants as $p) {
-                $pArray = explode('|', $p);
-                $pObj = new stdClass;
-                $pObj->id = $pArray[0] ?? null;
-                $pObj->name = $pArray[1] ?? null;
-                $pObj->avatar = $pArray[2] ?? null;
-                $pObj->avatar_url = config('app.url') . '/images/avatar/' . ($pObj->avatar ? $pObj->avatar : 'default.png');
-                $conversation->users[] = $pObj;
-            }
-        }
-
-
-        // $conversations = Conversation::forUser($user_id)
-        //     ->leftJoin('conversation_user as cu', function($join) use ($user_id) {
-        //         $join->on('cu.conversation_id', 'conversations.id')
-        //             ->where('cu.user_id', $user_id);
-        //     })
-        //     ->leftJoin('messages as m', function($join) {
-        //         // COALESCE uzima 0 ako je last_read_message_id null ili 0
-        //         $join->on('m.conversation_id', 'conversations.id')
-        //             ->whereRaw('m.id > COALESCE(cu.last_read_message_id, 0)');
-        //     })
-        //     ->select(
-        //         'conversations.id',
-        //         'conversations.type',
-        //         'conversations.title',
-        //         DB::raw('COUNT(m.id) as unread_count')
-        //     )
-        //     ->groupBy('conversations.id', 'conversations.type', 'conversations.title')
-        //     ->get();
-
-
         return $conversations;
     }
 
-    public function startConversation($friend_id): Conversation 
+    public function startConversation($friend_id): int 
     {
         $user = $this->jwtServices->getContent();
         $user_id = $user['id'];
 
+        // 1. Proveri da li već postoji privatna konverzacija između ova dva usera
+        $existingConversationId = DB::table('conversation_user as cu1')
+            ->join('conversation_user as cu2', 'cu1.conversation_id', '=', 'cu2.conversation_id')
+            ->join('conversations as c', 'c.id', '=', 'cu1.conversation_id')
+            ->where('c.type', 'private')
+            ->where('cu1.user_id', $user_id)
+            ->where('cu2.user_id', $friend_id)
+            ->value('c.id'); // Vraća samo ID ako postoji, inače null
 
-        $conversation = Conversation::where('type', 'private')
-            ->whereHas('users', fn($q) => $q->where('users.id', $user_id))
-            ->whereHas('users', fn($q) => $q->where('users.id', $friend_id))
-            ->forUser($user_id)     // tvoj scope ovde
-            ->first(['id', 'type', 'title']);
-
-
-        if($conversation) {
-            return $conversation;
+        if ($existingConversationId) {
+            // Ako postoji, vrati tu konverzaciju (koristi tvoj Eloquent model)
+            return $existingConversationId;
         }
 
-        $conversation_id = DB::table('conversations')->insertGetId([
-            'type' => 'private',
-            'salt' => bin2hex(random_bytes(16)),
-            'created_by' => $user_id
-        ]);
+        // 2. Ako ne postoji, kreiraj novu
+        return DB::transaction(function () use ($user_id, $friend_id) {
+            // Kreiraj zapis u conversations
+            $newId = DB::table('conversations')->insertGetId([
+                'type' => 'private',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
 
-        DB::table('conversation_user')->insert([
-            [
-                'conversation_id' => $conversation_id,
-                'user_id' => $user_id,
-                'joined_at' => now()
-            ],
-            [
-                'conversation_id' => $conversation_id,
-                'user_id' => $friend_id,
-                'joined_at' => now()
-            ]
-        ]);
+            // Ubaci oba korisnika u pivot tabelu
+            DB::table('conversation_user')->insert([
+                ['conversation_id' => $newId, 'user_id' => $user_id, 'joined_at' => now(), 'created_at' => now()],
+                ['conversation_id' => $newId, 'user_id' => $friend_id, 'joined_at' => now(), 'created_at' => now()],
+            ]);
 
-        $conversation = Conversation::forUser($user_id)
-            ->where('id', $conversation_id)
-            ->first(['id', 'type', 'title']);
-
-        return $conversation;
+            return $newId;
+        });
     }
+
+    // public function getCoversation(int $conversation_id): stdClass
+    // {
+    //     return DB::table('conversations as c')
+    //     ->leftJoin('conversation_user as cu', 'cu.conversation_id', 'c.id')
+    //     ->leftJoin('users as u', 'u.id', 'cu.user_id')
+    //     ->where('c.id', $conversation_id)
+    //     ->select([
+    //         ''
+    //     ])
+    // }
 
     public function show(array $data)
     {
