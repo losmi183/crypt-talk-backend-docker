@@ -25,6 +25,9 @@ return new class extends Migration
             
             // Tekst poruke
             $table->text('message')->nullable();
+            $table->text('message_encrypted')->nullable();
+            $table->tinyInteger('is_encrypted')->default(false);
+            $table->string('iv', 24)->nullable();
 
             // Opcionalno: status poruke (sent, delivered, read) možeš dodati kasnije
             $table->enum('status', ['sent', 'delivered', 'read'])->default('sent');

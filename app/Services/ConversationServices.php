@@ -72,6 +72,8 @@ class ConversationServices {
             // Kreiraj zapis u conversations
             $newId = DB::table('conversations')->insertGetId([
                 'type' => 'private',
+                'salt' => bin2hex(random_bytes(16)),
+                'iterations' => config('crypto.pbkdf2_iterations'),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -144,7 +146,34 @@ class ConversationServices {
         return $conversation;
     }
 
-    public function sendMessage(int $conversation_id, string $content): stdClass
+    public function changeEncrypted(array $data)
+    {
+        $user = $this->jwtServices->getContent();
+        $user_id = $user['id'];
+        $conversation_id = intval($data['conversationId']);
+        $encrypted = $data['encrypted'];
+
+        // 1. Provera da li korisnik učestvuje
+        $conversation = DB::table('conversations as c')
+            ->leftJoin('conversation_user as cu', 'c.id', 'cu.conversation_id')
+            ->where('c.id', $conversation_id)
+            ->where('cu.user_id', $user_id)
+            ->first();
+
+        if (!$conversation) {
+            abort(404, 'User not in conversation');
+        }
+
+        // 2. Izvrši update
+        DB::table('conversations')
+            ->where('id', $conversation_id)
+            ->update(['encrypted' => $encrypted]);
+
+        // 4. Vrati success
+        return response()->json(['success' => true]);
+    }
+
+    public function sendMessage(array $data): stdClass
     {
         $user = $this->jwtServices->getContent();
         unset($user['exp']);
@@ -153,8 +182,11 @@ class ConversationServices {
         try {
             $messageId = DB::table('messages')->insertGetId([
                 'sender_id' => $user['id'],
-                'conversation_id' => $conversation_id,
-                'message' => $content,
+                'conversation_id' => $data['conversationId'],
+                'is_encrypted' => $data['isEncrypted'],
+                'message' => $data['text'] ?? null,
+                'message_encrypted' => $data['encryptedData'] ?? null,
+                'iv' => $data['iv'] ?? null
             ]);
 
         } catch (\Throwable $th) {
@@ -174,7 +206,7 @@ class ConversationServices {
         // $conversation = DB::table('conversations')->where('id', $conversation_id)->first();
         $participants = DB::table('conversation_user')
         ->select('user_id')
-        ->where('conversation_id', $conversation_id)
+        ->where('conversation_id', $data['conversationId'])
         ->where('user_id', '!=', $user['id'])
         ->get();
 
@@ -183,7 +215,7 @@ class ConversationServices {
             $this->pusherServices->push(
                 $event,
                 $channel,
-                $conversation_id, 
+                $data['conversationId'], 
                 $message, 
             );
         }

@@ -6,14 +6,16 @@ use Pusher\Pusher;
 use App\Events\MessageSent;
 use App\Services\JWTServices;
 use OpenApi\Attributes as OA;
-use App\Services\ConversationServices;
 use Illuminate\Http\JsonResponse;
 use App\Repository\UserRepository;
 use Illuminate\Support\Facades\DB;
+use App\Services\ConversationServices;
+use App\Http\Requests\EncryptedRequest;
 use App\Http\Requests\MarkAsSeenRequest;
 use App\Http\Requests\MessageSeenRequest;
 use App\Http\Requests\MessageSendRequest;
 use App\Http\Requests\ConversationRequest;
+use App\Http\Requests\ChangeEncryptedRequest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -79,6 +81,15 @@ class ConversatonController extends Controller
         return response()->json($result);
     }
 
+    public function changeEncrypted(ChangeEncryptedRequest $request): JsonResponse
+    {
+        $data = $request->validated();        
+
+        $result = $this->conversationServices->changeEncrypted($data);
+
+        return response()->json($result);
+    }
+
 
     #[OA\Post(
         path: '/message/send',
@@ -103,7 +114,7 @@ class ConversatonController extends Controller
     {
         $data = $request->validated();
 
-        $message = $this->conversationServices->sendMessage($data['conversationId'], $data['content']);        
+        $message = $this->conversationServices->sendMessage($data);        
 
         return response()->json(['status' => 'success', 'message' => $message]);
     }

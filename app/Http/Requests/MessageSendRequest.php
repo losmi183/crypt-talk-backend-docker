@@ -26,7 +26,10 @@ class MessageSendRequest extends FormRequest
     {
         return [
             'conversationId' => 'required|integer',
-            'content' => 'required|string',
+            'isEncrypted' => 'required|boolean',
+            'text' => 'nullable|string',
+            'encryptedData' => 'nullable|string',
+            'iv' => 'nullable|string'
         ];
     }
  

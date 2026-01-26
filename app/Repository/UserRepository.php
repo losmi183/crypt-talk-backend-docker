@@ -60,6 +60,8 @@ class UserRepository
                 $query->select(DB::raw(1))
                     ->from('conversation_user as cu1')
                     ->join('conversation_user as cu2', 'cu1.conversation_id', '=', 'cu2.conversation_id')
+                    ->join('conversations as c', 'c.id', '=', 'cu1.conversation_id')
+                    ->where('c.type', 'private') // ← KLJUČNO
                     ->whereColumn('cu1.user_id', 'u.id')
                     ->where('cu2.user_id', $user_id);
             })

@@ -82,6 +82,12 @@ class UserSeeder extends Seeder
             'password' => Hash::make('edi'),
             'active_from' => now(),
         ]);      
+        DB::table('users')->insert([
+            'name' => 'kica',
+            'email' => 'kica@mail.com',
+            'password' => Hash::make('kica'),
+            'active_from' => now(),
+        ]);      
         
         
 

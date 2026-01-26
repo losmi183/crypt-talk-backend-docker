@@ -42,7 +42,7 @@ class ConversationRepository
         }
 
         $conversations = $query->select([
-            'c.id', 'c.title', 'c.type',
+            'c.id', 'c.title', 'c.type', 'c.encrypted', 'c.salt', 'c.iterations',
             DB::raw("GROUP_CONCAT(CONCAT_WS('|', u.id, u.name, u.avatar)) as participants"),
 
             DB::raw("
@@ -56,7 +56,7 @@ class ConversationRepository
                 ) as unread_count
             ")            
         ])        
-        ->groupBy('c.id', 'c.title', 'c.type', 'cu_user.last_read_message_id')
+        ->groupBy('c.id', 'c.title', 'c.type', 'c.encrypted', 'c.salt', 'c.iterations', 'cu_user.last_read_message_id')
         ->get();
 
         foreach ($conversations as $conversation) {

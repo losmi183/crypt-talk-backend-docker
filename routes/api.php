@@ -47,13 +47,16 @@ Route::group(['middleware' => 'jwt', 'prefix' => 'user'], function () {
 
 Route::post('/pusher/auth', [PusherAuthController::class, 'authenticate'])->middleware('jwt');
 Route::group(['middleware' => 'jwt', 'prefix' => 'conversation'], routes: function () {
+    // Conversations
     Route::get('/index', [ConversatonController::class, 'index']);
     Route::post('/start-conversation', [ConversatonController::class, 'startConversation']);
     Route::post('/show', [ConversatonController::class, 'show']);
+    Route::post('/change-encrypted', [ConversatonController::class, 'changeEncrypted']);
+
+    // Messages
     Route::post('/send-message', [ConversatonController::class, 'sendMessage']);
     Route::post('/send-attachment', [AttachmentController::class, 'sendAttachment']);
     Route::post('/seen', [ConversatonController::class, 'seen']);
     Route::post('/mark-as-read', [ConversatonController::class, 'markAsRead']);
-
-    });
+});
 Route::get('/media/{type}/{file}', [AttachmentController::class, 'show']);
