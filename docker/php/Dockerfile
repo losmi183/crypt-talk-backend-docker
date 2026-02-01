@@ -65,7 +65,8 @@ COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Kopiraj SSL konfiguraciju
-COPY laravel-ssl.conf /etc/apache2/sites-available/000-default.conf
+COPY laravel-ssl.conf /etc/apache2/sites-available/laravel-ssl.conf
+COPY laravel-dev.conf /etc/apache2/sites-available/laravel-dev.conf
 
 # Set entrypoint
 ENTRYPOINT ["docker-entrypoint.sh"]
