@@ -1,10 +1,22 @@
 #!/bin/bash
 
-# Wait for database to be ready (opciono)
-# while ! mysql -h db -u crypt_user -psecret -e "SELECT 1" >/dev/null 2>&1; do
-#     echo "Waiting for database..."
-#     sleep 2
-# done
+# ⭐ DODATO: Pročitaj APP_ENV iz Laravel .env fajla
+if [ -f ".env" ]; then
+    APP_ENV_VALUE=$(grep "^APP_ENV=" .env | cut -d= -f2)
+    echo "Detected APP_ENV: $APP_ENV_VALUE"
+else
+    APP_ENV_VALUE="local"
+    echo "No .env file found, defaulting to: $APP_ENV_VALUE"
+fi
+
+# ⭐ DODATO: Odaberi Apache config baziran na APP_ENV
+if [ "$APP_ENV_VALUE" = "production" ]; then
+    echo "Production environment - using SSL configuration"
+    cp /etc/apache2/sites-available/laravel-ssl.conf /etc/apache2/sites-available/000-default.conf
+else
+    echo "Development environment - using HTTP configuration"
+    cp /etc/apache2/sites-available/laravel-dev.conf /etc/apache2/sites-available/000-default.conf
+fi
 
 # Install Composer dependencies if vendor folder doesn't exist
 if [ ! -d "vendor" ]; then
@@ -27,7 +39,8 @@ chmod -R 775 storage bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache
 
 # Run database migrations (opciono)
-# php artisan migrate --force
+#php artisan migrate --force
+# php artisan db:seed --force
 
 # Run the main command (Apache)
 exec "$@"

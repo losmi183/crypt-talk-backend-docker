@@ -42,9 +42,12 @@ RUN docker-php-ext-install \
 RUN pecl install xdebug \
     && docker-php-ext-enable xdebug
 
-# Apache modules
+# Apache modules - SSL dodato
 RUN a2enmod rewrite
 RUN a2enmod headers
+RUN a2enmod ssl
+# RUN a2enmod proxy
+# RUN a2enmod proxy_fcgi
 
 # Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -61,10 +64,14 @@ RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# Kopiraj SSL konfiguraciju
+COPY laravel-ssl.conf /etc/apache2/sites-available/laravel-ssl.conf
+COPY laravel-dev.conf /etc/apache2/sites-available/laravel-dev.conf
+
 # Set entrypoint
 ENTRYPOINT ["docker-entrypoint.sh"]
 
-# Port
-EXPOSE 80
+# Port - dodato 443
+EXPOSE 80 443
 
 CMD ["apache2-foreground"]
