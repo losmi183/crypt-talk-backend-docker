@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   app:
     build:
@@ -10,8 +12,12 @@ services:
       - ./:/var/www/html
       - ./docker/php/xdebug.ini:/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
+      # SSL sertifikati
+      - /etc/letsencrypt/live/crypt-talk.online:/etc/letsencrypt/live/crypt-talk.online:ro
+      - /etc/letsencrypt/archive/crypt-talk.online:/etc/letsencrypt/archive/crypt-talk.online:ro
     ports:
-      - "80:80"
+      # - "80:80"
+      - "443:443"
     environment:
       DB_HOST: db
       DB_PORT: 3306

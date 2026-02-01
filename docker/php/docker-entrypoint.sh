@@ -27,7 +27,8 @@ chmod -R 775 storage bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache
 
 # Run database migrations (opciono)
-# php artisan migrate --force
+#php artisan migrate --force
+# php artisan db:seed --force
 
 # Run the main command (Apache)
 exec "$@"
