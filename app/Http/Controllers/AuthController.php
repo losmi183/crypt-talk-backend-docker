@@ -51,9 +51,13 @@ class AuthController extends Controller
         $result = $this->authServices->register($data);
 
         return response()->json([
-            'message' => 'Please check your email to finish registration',
+            'message' => 'Registration success.',
             'data' => $data
         ]);
+        // return response()->json([
+        //     'message' => 'Please check your email to finish registration',
+        //     'data' => $data
+        // ]);
     }    
 
     #[OA\Post(

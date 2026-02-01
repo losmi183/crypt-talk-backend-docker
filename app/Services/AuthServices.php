@@ -33,15 +33,19 @@ class AuthServices {
         // 1. set token
         $registerToken = $this->jwtServices->encrypt($userData, 1440);  // 1440 - 24h
 
-        // 3. Send email
-        try {
-            Mail::to($userData['email'])->send(
-                new VerifyEmail($userData, $registerToken)
-            );
-        } catch(Throwable $ex) {
-            Log::error($ex->getMessage());
-        }
+        // 2. slanje na email, mora aktivacijia
+        // try {
+        //     Mail::to($userData['email'])->send(
+        //         new VerifyEmail($userData, $registerToken)
+        //     );
+        // } catch(Throwable $ex) {
+        //     Log::error($ex->getMessage());
+        // }
 
+        // 3. Odma aktivan dok ne sredim mail
+        $userData['active_from'] = now();
+
+        // 4. hash passworda
         $userData['password'] = Hash::make($userData['password']);
 
         return $this->userRepository->store($userData); 
