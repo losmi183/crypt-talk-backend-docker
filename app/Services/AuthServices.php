@@ -34,16 +34,16 @@ class AuthServices {
         $registerToken = $this->jwtServices->encrypt($userData, 1440);  // 1440 - 24h
 
         // 2. slanje na email, mora aktivacijia
-        // try {
-        //     Mail::to($userData['email'])->send(
-        //         new VerifyEmail($userData, $registerToken)
-        //     );
-        // } catch(Throwable $ex) {
-        //     Log::error($ex->getMessage());
-        // }
+        try {
+            Mail::to($userData['email'])->send(
+                new VerifyEmail($userData, $registerToken)
+            );
+        } catch(Throwable $ex) {
+            Log::error($ex->getMessage());
+        }
 
         // 3. Odma aktivan dok ne sredim mail
-        $userData['active_from'] = now();
+        // $userData['active_from'] = now();
 
         // 4. hash passworda
         $userData['password'] = Hash::make($userData['password']);
@@ -113,7 +113,9 @@ class AuthServices {
 
         $user = User::where('email', $email)->first();
 
-        return redirect()->away(env('FRONTEND_DEV') . 'login?status=email_verified');     
+        $frontend_url = env('FRONTEND_DEV');
+
+        return redirect()->away(env('FRONTEND_DEV') . '/login?status=email_verified');     
     }
 
     /**

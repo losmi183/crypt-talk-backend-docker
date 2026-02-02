@@ -50,14 +50,14 @@ class AuthController extends Controller
 
         $result = $this->authServices->register($data);
 
-        return response()->json([
-            'message' => 'Registration success.',
-            'data' => $data
-        ]);
         // return response()->json([
-        //     'message' => 'Please check your email to finish registration',
+        //     'message' => 'Registration success.',
         //     'data' => $data
         // ]);
+        return response()->json([
+            'message' => 'Please check your email to finish registration',
+            'data' => $data
+        ]);
     }    
 
     #[OA\Post(
@@ -125,7 +125,7 @@ class AuthController extends Controller
             ? env('FRONTEND_PROD') 
             : env('FRONTEND_DEV');
 
-        $loginUrl = $frontendUrl . 'login';
+        $loginUrl = $frontendUrl . '/login';
 
         return redirect($loginUrl);
     }
