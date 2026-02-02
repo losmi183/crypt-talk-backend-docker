@@ -38,14 +38,27 @@ class ConversationServices {
         $this->conversationRepository = $conversationRepository;
     }
 
-    public function index() {
+    public function index() : stdClass
+    {
 
         $user = $this->jwtServices->getContent();
+        $result = new stdClass;
+        $result->conversations = $this->conversationRepository->userConversations($user['id']);
 
-        $conversations = $this->conversationRepository->userConversations($user['id']);
+        $messages = DB::table('messages as m')
+        ->leftJoin('conversation_user as cu', 'cu.conversation_id', '=', 'm.conversation_id')
+        ->where('cu.user_id', $user['id'])
+        ->get();
 
+        $result->totalMessages = count($messages);
+        $result->encryptedMessages = 0;
         
-        return $conversations;
+        foreach ($messages as $message) {
+            if($message->is_encrypted) {
+                $result->encryptedMessages++;
+            }
+        }
+        return $result;
     }
 
     public function startConversation($friend_id): int 
