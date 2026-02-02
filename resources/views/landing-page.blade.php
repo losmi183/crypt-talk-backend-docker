@@ -31,6 +31,12 @@
                 </div>
 
                 <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>PBKDF2 Key Derivation</h3>
+                    <p>Your password goes through 100,000 rounds of cryptographic hashing before generating encryption keys. This process slows down brute-force attacks by 100,000x - turning a 6-day attack into 1,600+ years. Even weak passwords become exponentially harder to crack, giving you time to change them if compromised.</p>
+                </div>
+
+                <div class="feature-card">
                     <div class="feature-icon">🚫</div>
                     <h3>Zero Knowledge Architecture</h3>
                     <p>We mathematically cannot read your messages. Our servers only store encrypted data - even system administrators and law enforcement cannot access your conversations.</p>
@@ -40,12 +46,6 @@
                     <div class="feature-icon">⚡</div>
                     <h3>Real-Time Messaging</h3>
                     <p>Enjoy instant, lightning-fast communication without compromising security. Our optimized encryption ensures zero lag while maintaining maximum protection.</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="feature-icon">👥</div>
-                    <h3>Secure Group Chats</h3>
-                    <p>Create encrypted group conversations with up to 50 participants. Every member gets the same military-grade encryption and privacy protection.</p>
                 </div>
 
                 <div class="feature-card">

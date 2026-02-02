@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Mail;
 Route::get('/', function () {
     return view('landing-page');
 });
+Route::get('/password-calculator', function () {
+    return view('password-calculator');
+});
 
 // Route::get('/', function () {
 //     // xdebug_info();
