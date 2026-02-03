@@ -14,8 +14,7 @@ services:
       - /etc/letsencrypt/live/crypt-talk.online:/etc/letsencrypt/live/crypt-talk.online:ro
       - /etc/letsencrypt/archive/crypt-talk.online:/etc/letsencrypt/archive/crypt-talk.online:ro
     ports:
-      - "80:80"
-      - "443:443"
+      - "${DOCKER_PORT_MAPPING}"
     env_file:
       - ./.env
     environment:
