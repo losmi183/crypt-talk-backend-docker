@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('conversations', function (Blueprint $table) {
             $table->id();
-            $table->enum('type', ['private', 'group', 'broadcast'])
+            $table->enum('type', ['private', 'group', 'broadcast', 'chatbot'])
                   ->default('private');
 
             $table->string('title')->nullable();  // samo za grupe

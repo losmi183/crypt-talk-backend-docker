@@ -58,34 +58,14 @@ class UserSeeder extends Seeder
             'active_from' => now(),
             'avatar' => '5.png'
         ]);               
+    
+        
         DB::table('users')->insert([
-            'name' => 'beni',
-            'email' => 'beni@mail.com',
-            'password' => Hash::make('beni'),
-            'active_from' => now(),
-        ]);               
-        DB::table('users')->insert([
-            'name' => 'milencuga',
-            'email' => 'milencuga@mail.com',
-            'password' => Hash::make('milencuga'),
-            'active_from' => now(),
-        ]);               
-        DB::table('users')->insert([
-            'name' => 'djura',
-            'email' => 'djura@mail.com',
-            'password' => Hash::make('djura'),
-            'active_from' => now(),
-        ]);       
-        DB::table('users')->insert([
-            'name' => 'edi',
-            'email' => 'edi@mail.com',
-            'password' => Hash::make('edi'),
-            'active_from' => now(),
-        ]);      
-        DB::table('users')->insert([
-            'name' => 'kica',
-            'email' => 'kica@mail.com',
-            'password' => Hash::make('kica'),
+            'id' => 101,
+            'name' => 'Vlada AI',
+            'role' => 'ai',
+            'email' => 'vlada_ai@mail.com',
+            'password' => Hash::make('vladaai'),
             'active_from' => now(),
         ]);      
         
@@ -97,27 +77,6 @@ class UserSeeder extends Seeder
             'email' => 'nemac@mail.com',
             'password' => Hash::make('nemac'),
             'active_from' => now(),
-        ]); 
-        DB::table('users')->insert([
-            'id' => 1002,
-            'name' => 'kinez',
-            'email' => 'kinez@mail.com',
-            'password' => Hash::make('kinez'),
-            'active_from' => now(),
-        ]); 
-        DB::table('users')->insert([
-            'id' => 1003,
-            'name' => 'lanmi',
-            'email' => 'lanmi@mail.com',
-            'password' => Hash::make('lanmi'),
-            'active_from' => now(),
-        ]); 
-        DB::table('users')->insert([
-            'id' => 1004,
-            'name' => 'boki',
-            'email' => 'boki@mail.com',
-            'password' => Hash::make('boki'),
-            'active_from' => now(),
-        ]); 
+        ]);      
     }
 }

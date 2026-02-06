@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(UserSeeder::class);
         $this->call(ConversationSeeder::class);
+        $this->call(AIPersonsSeeder::class);
         $this->call(MessageSeeder::class);
     }
 }

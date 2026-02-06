@@ -518,29 +518,92 @@
                 ]
             }
         },
-        "/message/send": {
+        "/conversation/send-message": {
             "post": {
                 "tags": [
                     "Message"
                 ],
                 "summary": "Send message",
-                "operationId": "f25141bc0e4d4a6aaca8fe3e58e07b10",
+                "operationId": "b667afe5855d13afe01cbd42da75eb94",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "recipient_id"
+                                    "conversationId",
+                                    "isEncrypted"
                                 ],
                                 "properties": {
-                                    "recipient_id": {
+                                    "conversationId": {
                                         "type": "integer",
-                                        "default": 3
+                                        "default": 666
                                     },
-                                    "content": {
+                                    "isEncrypted": {
+                                        "type": "boolean",
+                                        "default": false
+                                    },
+                                    "text": {
                                         "type": "text",
-                                        "default": "lorem ipsum"
+                                        "default": "hey whatsupp"
+                                    },
+                                    "ai": {
+                                        "type": "boolean",
+                                        "default": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Message sent"
+                    },
+                    "500": {
+                        "description": "Server Error"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/conversation/send-message-ai": {
+            "post": {
+                "tags": [
+                    "Message"
+                ],
+                "summary": "Send message to AI",
+                "operationId": "df232dd9b167cad2b908835568ec3129",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "conversationId",
+                                    "isEncrypted"
+                                ],
+                                "properties": {
+                                    "conversationId": {
+                                        "type": "integer",
+                                        "default": 4
+                                    },
+                                    "isEncrypted": {
+                                        "type": "boolean",
+                                        "default": false
+                                    },
+                                    "text": {
+                                        "type": "text",
+                                        "default": "hey whatsupp"
+                                    },
+                                    "ai": {
+                                        "type": "boolean",
+                                        "default": true
                                     }
                                 },
                                 "type": "object"

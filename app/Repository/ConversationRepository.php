@@ -22,7 +22,7 @@ class ConversationRepository
 
    public function userConversations(int $user_id, ?string $search = null)
    {
-    $query = DB::table(table: 'conversations as c')        
+        $query = DB::table(table: 'conversations as c')        
         ->join('conversation_user as cu_user', function($join) use ($user_id) {
             $join->on('c.id', '=', 'cu_user.conversation_id')
                 ->where('cu_user.user_id', $user_id);
@@ -43,7 +43,7 @@ class ConversationRepository
 
         $conversations = $query->select([
             'c.id', 'c.title', 'c.type', 'c.encrypted', 'c.salt', 'c.iterations',
-            DB::raw("GROUP_CONCAT(CONCAT_WS('|', u.id, u.name, u.avatar)) as participants"),
+            DB::raw("GROUP_CONCAT(CONCAT_WS('|', u.id, u.name, u.role, u.avatar)) as participants"),
 
             DB::raw("
                 (SELECT COUNT(*) 
@@ -67,12 +67,22 @@ class ConversationRepository
                 $pObj = new stdClass;
                 $pObj->id = $pArray[0] ?? null;
                 $pObj->name = $pArray[1] ?? null;
-                $pObj->avatar = $pArray[2] ?? null;
+                $pObj->role = $pArray[2] ?? 'user';
+                $pObj->avatar = $pArray[3] ?? null;
                 $pObj->avatar_url = config('app.url') . '/images/avatar/' . ($pObj->avatar ? $pObj->avatar : 'default.png');
                 $conversation->users[] = $pObj;
             }
         }
 
         return $conversations;
+   }
+
+   public function conversationParticipants(array $data): Collection
+   {
+        return DB::table('conversation_user')
+            ->select('user_id')
+            ->where('conversation_id', $data['conversationId'])
+            ->where('user_id', '!=', $data['user_id'])
+            ->get();
    }
 }

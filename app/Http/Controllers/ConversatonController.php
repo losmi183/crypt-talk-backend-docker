@@ -92,14 +92,16 @@ class ConversatonController extends Controller
 
 
     #[OA\Post(
-        path: '/message/send',
+        path: '/conversation/send-message',
         summary: 'Send message',
         requestBody: new OA\RequestBody(required: true,
         content: new OA\MediaType(mediaType: 'application/json',
-        schema: new OA\Schema(required: ['recipient_id'],
+        schema: new OA\Schema(required: ['conversationId', 'isEncrypted'],
             properties: [
-                new OA\Property(property: 'recipient_id', type: 'integer', default: 3),
-                new OA\Property(property: 'content', type: 'text', default: 'lorem ipsum'),
+                new OA\Property(property: 'conversationId', type: 'integer', default: 101),
+                new OA\Property(property: 'isEncrypted', type: 'boolean', default: false),
+                new OA\Property(property: 'text', type: 'text', default: 'hey whatsupp'),
+                new OA\Property(property: 'ai', type: 'boolean', default: true),
             ]
         ),
     )),
@@ -115,6 +117,36 @@ class ConversatonController extends Controller
         $data = $request->validated();
 
         $message = $this->conversationServices->sendMessage($data);        
+
+        return response()->json(['status' => 'success', 'message' => $message]);
+    }
+
+    #[OA\Post(
+        path: '/conversation/send-message-ai',
+        summary: 'Send message to AI',
+        requestBody: new OA\RequestBody(required: true,
+        content: new OA\MediaType(mediaType: 'application/json',
+        schema: new OA\Schema(required: ['conversationId', 'isEncrypted'],
+            properties: [
+                new OA\Property(property: 'conversationId', type: 'integer', default: 4),
+                new OA\Property(property: 'isEncrypted', type: 'boolean', default: false),
+                new OA\Property(property: 'text', type: 'text', default: 'hey whatsupp'),
+                new OA\Property(property: 'ai', type: 'boolean', default: true),
+            ]
+        ),
+    )),
+        tags: ['Message'],
+        security: [['bearerAuth' => []]],
+        responses: [
+            new OA\Response(response: Response::HTTP_OK, description: 'Message sent'),
+            new OA\Response(response: Response::HTTP_INTERNAL_SERVER_ERROR, description: 'Server Error')
+        ]
+    )]
+    public function sendMessageAi(MessageSendRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $message = $this->conversationServices->sendMessageAi($data);        
 
         return response()->json(['status' => 'success', 'message' => $message]);
     }
@@ -136,4 +168,5 @@ class ConversatonController extends Controller
 
         return response()->json($result);
     }
+    
 }

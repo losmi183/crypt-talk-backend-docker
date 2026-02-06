@@ -39,22 +39,9 @@ class ConversationSeeder extends Seeder
                 'iterations' => $iterations,
                 'title' => null,
             ],
-            [
-                'id' => 5,
-                'type' => 'private',
-                'salt' => '9f8e7d6c5b4a3928171625341a0b0c0d',
-                'iterations' => $iterations,
-                'title' => null,
-            ],
         ]);
 
-        DB::table('conversations')->insert([
-            'id' => 4,
-            'type' => 'group',
-            'salt' => '9f8e7d6c5b4a3928171625341a0b0c0d',
-            'iterations' => $iterations,
-            'title' => 'nova godina'
-        ]);
+
 
         DB::table('conversation_user')->insert([
             [
@@ -95,51 +82,29 @@ class ConversationSeeder extends Seeder
                 'conversation_id' => 3,
                 'user_id' =>2,
                 'joined_at' => now()
-            ],
-
-
-            [
-                'conversation_id' => 4,
-                'user_id' =>1,
-                'joined_at' => now()
-            ],
-            [
-                'conversation_id' => 4,
-                'user_id' =>3,
-                'joined_at' => now()
-            ],
-            [
-                'conversation_id' => 4,
-                'user_id' =>2,
-                'joined_at' => now()
-            ],
-            [
-                'conversation_id' => 4,
-                'user_id' =>4,
-                'joined_at' => now()
-            ],
-            [
-                'conversation_id' => 4,
-                'user_id' =>5,
-                'joined_at' => now()
-            ],
-            [
-                'conversation_id' => 4,
-                'user_id' =>6,
-                'joined_at' => now()
-            ],
-
-            [
-                'conversation_id' => 5,
-                'user_id' =>2,
-                'joined_at' => now()
-            ],
-            [
-                'conversation_id' => 5,
-                'user_id' =>1001,
-                'joined_at' => now()
-            ],
-
+            ],     
         ]);
+
+        $users = DB::table('users')->where('id', '!=', 101)->get();
+        foreach ($users as $user) {
+            $conversation_id = DB::table('conversations')->insertGetId([
+                'type' => 'chatbot',
+                'title' => 'Ai assistent',
+            ]);
+            DB::table('conversation_user')->insert([
+                'conversation_id' => $conversation_id,
+                'user_id' => 101,
+            ]);
+            DB::table('conversation_user')->insert([
+                'conversation_id' => $conversation_id,
+                'user_id' => $user->id,
+            ]);
+            // DB::table('messages')->insert([
+            //     'conversation_id' => $conversation_id,
+            //     'sender_id' => 101,
+            //     'type' => 'message',
+            //     'message' => "Hello, I'm your Ai assistent. How I can help you? You can ask me anything about crypt message app"
+            // ]);
+        }
     }
 }

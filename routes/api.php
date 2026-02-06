@@ -55,8 +55,10 @@ Route::group(['middleware' => 'jwt', 'prefix' => 'conversation'], routes: functi
 
     // Messages
     Route::post('/send-message', [ConversatonController::class, 'sendMessage']);
+    Route::post('/send-message-ai', [ConversatonController::class, 'sendMessageAi']);
     Route::post('/send-attachment', [AttachmentController::class, 'sendAttachment']);
     Route::post('/seen', [ConversatonController::class, 'seen']);
     Route::post('/mark-as-read', [ConversatonController::class, 'markAsRead']);
+
 });
 Route::get('/media/{type}/{file}', [AttachmentController::class, 'show']);

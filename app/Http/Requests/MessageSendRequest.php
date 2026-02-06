@@ -29,7 +29,8 @@ class MessageSendRequest extends FormRequest
             'isEncrypted' => 'required|boolean',
             'text' => 'nullable|string',
             'encryptedData' => 'nullable|string',
-            'iv' => 'nullable|string'
+            'iv' => 'nullable|string',
+            'ai' => 'nullable|boolean'
         ];
     }
  
@@ -47,10 +48,13 @@ class MessageSendRequest extends FormRequest
      * Setovanje neobaveznih polja na null ako nisu poslata
      * @return void
      */
-    // public function prepareForValidation(): void
-    // {
-    //     if (!array_key_exists('name', $this->all())) {
-    //         $this->merge(['name' => 'ssssss']);
-    //     }      
-    // }
+    public function prepareForValidation(): void
+    {
+        if (!$this->has('ai')) {
+            $this->merge(['ai' => false]);
+        }
+        // if (!array_key_exists('name', $this->all())) {
+        //     $this->merge(['name' => 'ssssss']);
+        // }      
+    }
 }

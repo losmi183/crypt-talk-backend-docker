@@ -1,7 +1,6 @@
 <?php
 
 namespace App\Services;
-use App\Repository\ConversationRepository;
 use stdClass;
 use Carbon\Carbon;
 use Pusher\Pusher;
@@ -11,11 +10,13 @@ use App\Events\MessageSent;
 use App\Models\Conversation;
 use App\Services\PusherServices;
 use App\Repository\UserRepository;
+use App\Services\GroqServices;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use App\Repository\MessageRepository;
+use App\Repository\ConversationRepository;
 
 class ConversationServices {
 
@@ -24,18 +25,21 @@ class ConversationServices {
     private MessageRepository $messageRepository;
     private ConversationRepository $conversationRepository;
     private PusherServices $pusherServices;
+    private GroqServices $groqServices;
     public function __construct(
         UserRepository $userRepository, 
         JWTServices $jwtServices, 
         MessageRepository $messageRepository, 
         PusherServices $pusherServices,
-        ConversationRepository $conversationRepository
+        ConversationRepository $conversationRepository,
+        GroqServices $groqServices
     ) {
         $this->userRepository = $userRepository;
         $this->jwtServices = $jwtServices;
         $this->messageRepository = $messageRepository;
         $this->pusherServices = $pusherServices;
         $this->conversationRepository = $conversationRepository;
+        $this->groqServices = $groqServices;
     }
 
     public function index() : stdClass
@@ -186,42 +190,20 @@ class ConversationServices {
         return response()->json(['success' => true]);
     }
 
-    public function sendMessage(array $data): stdClass
+    public function sendMessage(array $data): array
     {
+        $array = [];
         $user = $this->jwtServices->getContent();
         unset($user['exp']);
         $event = 'message.sent';
 
-        try {
-            $messageId = DB::table('messages')->insertGetId([
-                'sender_id' => $user['id'],
-                'conversation_id' => $data['conversationId'],
-                'is_encrypted' => $data['isEncrypted'],
-                'message' => $data['text'] ?? null,
-                'message_encrypted' => $data['encryptedData'] ?? null,
-                'iv' => $data['iv'] ?? null
-            ]);
+        $data['user_id'] = $user['id'];
+        $messageId = $this->messageRepository->saveMessage($data);
 
-        } catch (\Throwable $th) {
-            Log::error($th->getMessage());
-        }
-
-        $message = DB::table('messages as m')
-            ->join('users as u', 'u.id', 'm.sender_id')
-            ->select(
-                'm.*', 
-                'u.name as sender_name', 
-                DB::raw("CONCAT('" . config('app.url') . "/images/avatar/', u.avatar) as avatar_url")
-            )
-            ->where('m.id', $messageId)
-            ->first();
+        $message = $this->messageRepository->formatMessage($messageId);
 
         // $conversation = DB::table('conversations')->where('id', $conversation_id)->first();
-        $participants = DB::table('conversation_user')
-        ->select('user_id')
-        ->where('conversation_id', $data['conversationId'])
-        ->where('user_id', '!=', $user['id'])
-        ->get();
+        $participants = $this->conversationRepository->conversationParticipants($data);
 
         foreach ($participants as $participant) {
             $channel = config('pusher.PRIVATE_CONVERSATION').$participant->user_id;
@@ -233,7 +215,53 @@ class ConversationServices {
             );
         }
 
-        return $message;
+        $array[] = $message;
+        return $array;
+    }
+    public function sendMessageAi(array $data): array
+    {
+        $array = [];        
+        // 1. find user
+        $user = $this->jwtServices->getContent();
+        unset($user['exp']);
+        $event = 'message.sent';
+        $data['user_id'] = $user['id'];
+        // 2. save user message
+        $messageId = $this->messageRepository->saveMessage($data);
+        $message = $this->messageRepository->formatMessage($messageId);
+        $array[]=$message;
+
+        // 3. send to AI api
+        $aiText = $this->groqServices->send($data);
+
+        // 4. cuvamo ai response kao poruku kod nas u bazi
+
+        $aiData = [
+            'conversationId' => $data['conversationId'],
+            'isEncrypted' => 0,
+            'text' => $aiText,
+            'user_id' => 101
+        ];
+        $aiMessageId = $this->messageRepository->saveMessage($aiData);
+
+        // $conversation = DB::table('conversations')->where('id', $conversation_id)->first();
+        $aiData['user_id'] = 101; // Ai user
+        $participants = $this->conversationRepository->conversationParticipants($aiData);
+
+        $aiMessage = $this->messageRepository->formatMessage($aiMessageId);
+
+        // Not sending for now, eventualy for gorup chat...
+        // foreach ($participants as $participant) {
+        //     $channel = config('pusher.PRIVATE_CONVERSATION').$participant->user_id;
+        //     $this->pusherServices->push(
+        //         $event,
+        //         $channel,
+        //         $aiData['conversationId'], 
+        //         $aiMessage, 
+        //     );
+        // }
+        $array[]=$aiMessage;
+        return $array;
     }
 
     public function seen(int $friend_id, string $seen): bool
