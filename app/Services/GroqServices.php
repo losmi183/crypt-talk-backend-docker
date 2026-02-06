@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use App\Repository\MessageRepository;
 
 class GroqServices {
@@ -17,9 +18,14 @@ class GroqServices {
     {
         $aiPerson = \DB::table('ai_persons')->where('user_id', '101')->first();
 
+        Log::info(json_encode($aiPerson));
+        
         $conversationHistory  = $this->messageRepository->getConversationMessages($data['conversationId'], 20);
         $limitedMessages = $this->aiServices->trimMessagesToTokenLimit($conversationHistory, $aiPerson->max_tokens);
         $messages = $this->aiServices->formatMessagesForAI($limitedMessages, $aiPerson);
+
+        Log::info(json_encode('$messages'));
+        Log::info(json_encode($messages));
 
         $client = new \GuzzleHttp\Client([
             'timeout' => 30.0,
@@ -64,14 +70,20 @@ class GroqServices {
                 return 'No content in response. Data: ' . json_encode($data);
             }
             
-            return $data['choices'][0]['message']['content'];
+            $aiResponse =  $data['choices'][0]['message']['content'];
+            Log::info(json_encode('$aiResponse'));
+            Log::info(json_encode($aiResponse));
+            return $aiResponse;
             
         } catch (\GuzzleHttp\Exception\ConnectException $e) {
+            Log::error(json_encode($e->getMessage()));
             return "Connection error: " . $e->getMessage();
         } catch (\GuzzleHttp\Exception\RequestException $e) {
             return "Request error: " . $e->getMessage();
+            Log::error(json_encode($e->getMessage()));
         } catch (\Exception $e) {
             return "General error: " . $e->getMessage();
+            Log::error(json_encode($e->getMessage()));
         }
     }
 }
