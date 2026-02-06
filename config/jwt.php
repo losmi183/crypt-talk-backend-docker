@@ -1,0 +1,9 @@
+<?php
+
+return [
+
+    'JWT2LIVEMIN' => env('JWT2LIVEMIN','10'),
+    'JWT2RFSHMIN' => env('JWT2RFSHMIN','60'),
+    'JWT2LIVEFORGOTPASS'=> env('JWT2LIVEFORGOTPASS','60'),
+
+];
